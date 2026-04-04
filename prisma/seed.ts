@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 //Wrapping in an async IIFE so we can use await at the top level
 async function main() {
-  console.log("🌱 Starting seed...\n");
+  console.log(" Starting seed...\n");
 
   //Wipe existing data in the right order to avoid FK violations
   await prisma.booking.deleteMany();
@@ -17,10 +17,7 @@ async function main() {
 
   console.log("🧹 Cleared existing data\n");
 
-  // =====================================================
   // USERS
-  // =====================================================
-
   const hash = (pw: string) => bcrypt.hash(pw, 12);
 
   //All test passwords follow the pattern shown below so they're easy to remember
@@ -108,10 +105,7 @@ async function main() {
   console.log(`   USER   → meera.pillai@user.com      / User@1234`);
   console.log(`   USER   → dev.patel@user.com         / User@1234\n`);
 
-  // =====================================================
   // EXPERIENCES
-  // =====================================================
-
   //Mix of statuses so we can test all the moderation flows
   const exp1 = await prisma.experience.create({
     data: {
@@ -219,7 +213,7 @@ async function main() {
     },
   });
 
-  console.log("🎯 Experiences created:");
+  console.log(" Experiences created:");
   console.log(`   [PUBLISHED] ${exp1.title} - ${exp1.location}`);
   console.log(`   [PUBLISHED] ${exp2.title} - ${exp2.location}`);
   console.log(`   [PUBLISHED] ${exp3.title} - ${exp3.location}`);
@@ -229,10 +223,7 @@ async function main() {
   console.log(`   [DRAFT]     ${exp7.title} - ${exp7.location}`);
   console.log(`   [BLOCKED]   ${exp8.title} - ${exp8.location}\n`);
 
-  // =====================================================
   // BOOKINGS
-  // =====================================================
-
   //Rahul books the yoga class and the kayaking trip
   const booking1 = await prisma.booking.create({
     data: {
@@ -310,10 +301,7 @@ async function main() {
   console.log(`   dev.patel     → "${exp3.title}" (2 seats, confirmed)`);
   console.log(`   admin         → "${exp5.title}" (1 seat, confirmed)\n`);
 
-  // =====================================================
   // SUMMARY for easy curl testing
-  // =====================================================
-
   console.log("=".repeat(60));
   console.log("SEED COMPLETE - Quick Reference IDs");
   console.log("=".repeat(60));
@@ -333,39 +321,67 @@ async function main() {
   console.log(`[PUBLISHED] exp4 id : ${exp4.id}`);
   console.log(`[PUBLISHED] exp5 id : ${exp5.id}`);
   console.log(`[PUBLISHED] exp6 id : ${exp6.id}`);
-  console.log(`[DRAFT]     exp7 id : ${exp7.id}  ← try to book this (should 400)`);
-  console.log(`[BLOCKED]   exp8 id : ${exp8.id}  ← try to book this (should 400)`);
+  console.log(
+    `[DRAFT]     exp7 id : ${exp7.id}  ← try to book this (should 400)`,
+  );
+  console.log(
+    `[BLOCKED]   exp8 id : ${exp8.id}  ← try to book this (should 400)`,
+  );
 
   console.log("\n--- BOOKINGS ---");
   console.log(`booking1 id : ${booking1.id}  (rahul on yoga, confirmed)`);
   console.log(`booking2 id : ${booking2.id}  (rahul on kayaking, confirmed)`);
-  console.log(`booking3 id : ${booking3.id}  (meera on street food, confirmed)`);
+  console.log(
+    `booking3 id : ${booking3.id}  (meera on street food, confirmed)`,
+  );
   console.log(`booking4 id : ${booking4.id}  (meera on spice trek, confirmed)`);
   console.log(`booking5 id : ${booking5.id}  (dev on surfing, CANCELLED)`);
-  console.log(`booking6 id : ${booking6.id}  (dev on heritage walk, confirmed)`);
+  console.log(
+    `booking6 id : ${booking6.id}  (dev on heritage walk, confirmed)`,
+  );
   console.log(`booking7 id : ${booking7.id}  (admin on kayaking, confirmed)`);
 
   console.log("\n--- WHAT TO TEST ---");
   console.log("Auth:");
-  console.log("  POST /auth/login  { email: 'admin@yoliday.com', password: 'Admin@1234' }");
-  console.log("  POST /auth/login  { email: 'priya.sharma@host.com', password: 'Host@1234' }");
-  console.log("  POST /auth/login  { email: 'rahul.nair@user.com', password: 'User@1234' }");
+  console.log(
+    "  POST /auth/login  { email: 'admin@yoliday.com', password: 'Admin@1234' }",
+  );
+  console.log(
+    "  POST /auth/login  { email: 'priya.sharma@host.com', password: 'Host@1234' }",
+  );
+  console.log(
+    "  POST /auth/login  { email: 'rahul.nair@user.com', password: 'User@1234' }",
+  );
   console.log("\nExperiences:");
   console.log(`  GET  /experiences                     → 6 published results`);
-  console.log(`  GET  /experiences?location=Goa        → 2 results (exp3 + exp4)`);
-  console.log(`  GET  /experiences?sort=desc           → sorted by start_time DESC`);
-  console.log(`  PATCH /experiences/${exp7.id.slice(0,8)}…/publish  → host2 can publish draft exp7`);
-  console.log(`  PATCH /experiences/${exp3.id.slice(0,8)}…/block    → admin can block exp3`);
+  console.log(
+    `  GET  /experiences?location=Goa        → 2 results (exp3 + exp4)`,
+  );
+  console.log(
+    `  GET  /experiences?sort=desc           → sorted by start_time DESC`,
+  );
+  console.log(
+    `  PATCH /experiences/${exp7.id.slice(0, 8)}…/publish  → host2 can publish draft exp7`,
+  );
+  console.log(
+    `  PATCH /experiences/${exp3.id.slice(0, 8)}…/block    → admin can block exp3`,
+  );
   console.log("\nBooking:");
-  console.log(`  POST /experiences/${exp4.id.slice(0,8)}…/book  { seats: 1 }  → user books surfing (dev cancelled so no duplicate)`);
-  console.log(`  POST /experiences/${exp7.id.slice(0,8)}…/book  { seats: 1 }  → should 400 (not published)`);
-  console.log(`  POST /experiences/${exp1.id.slice(0,8)}…/book  { seats: 1 }  → as rahul should 400 (duplicate booking)`);
+  console.log(
+    `  POST /experiences/${exp4.id.slice(0, 8)}…/book  { seats: 1 }  → user books surfing (dev cancelled so no duplicate)`,
+  );
+  console.log(
+    `  POST /experiences/${exp7.id.slice(0, 8)}…/book  { seats: 1 }  → should 400 (not published)`,
+  );
+  console.log(
+    `  POST /experiences/${exp1.id.slice(0, 8)}…/book  { seats: 1 }  → as rahul should 400 (duplicate booking)`,
+  );
   console.log("\n" + "=".repeat(60) + "\n");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Seed failed:", e);
+    console.error("Seed failed:", e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
