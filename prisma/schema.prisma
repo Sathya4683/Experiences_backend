@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  user
+  host
+  admin
+}
+
+enum ExperienceStatus {
+  draft
+  published
+  blocked
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  password_hash String
+  role          Role         @default(user)
+  created_at    DateTime     @default(now())
+  experiences   Experience[] @relation("CreatedExperiences")
+  bookings      Booking[]
+}
+
+model Experience {
+  id          String           @id @default(uuid())
+  title       String
+  description String
+  location    String
+  price       Int
+  start_time  DateTime
+  status      ExperienceStatus @default(draft)
+  created_at  DateTime         @default(now())
+  created_by  String
+  creator     User             @relation("CreatedExperiences", fields: [created_by], references: [id])
+  bookings    Booking[]
+
+  //Composite index for filtering by location and time range (Part E queries hit this a lot)
+  @@index([location, start_time])
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  experience_id String
+  user_id       String
+  seats         Int
+  status        BookingStatus @default(confirmed)
+  created_at    DateTime      @default(now())
+  experience    Experience    @relation(fields: [experience_id], references: [id])
+  user          User          @relation(fields: [user_id], references: [id])
+
+  //This index speeds up duplicate booking checks and per-user booking history lookups
+  @@index([user_id, experience_id])
+}
