@@ -1,5 +1,6 @@
 import express from "express";
 import { requestLogger } from "./middlewares/logger.middleware";
+import authRoutes from "./routes/auth.routes";
 import healthRoutes from "./routes/health.routes";
 import { sendError } from "./utils/errors";
 
@@ -13,6 +14,7 @@ app.use(requestLogger);
 
 //Mount all routes
 app.use("/", healthRoutes);
+app.use("/auth", authRoutes);
 
 //Catch-all for unknown routes
 app.use((_req, res) => {
