@@ -155,3 +155,74 @@ describe("Host - Create and Publish Experience", () => {
     expect(res.body.error.code).toBe("FORBIDDEN");
   });
 });
+
+//Tests to ensure only admins can block experiences
+describe("RBAC - Block Experience", () => {
+  let userToken: string;
+  let adminToken: string;
+  let expId: string;
+
+  beforeAll(async () => {
+    //Create an admin user manually (admins can't self-register)
+    const hash = await bcrypt.hash("adminpass123", 12);
+    await prisma.user.create({
+      data: { email: "admin@test.com", password_hash: hash, role: "admin" },
+    });
+
+    //Login as user
+    const userLogin = await request(app).post("/auth/login").send({
+      email: "testuser@example.com",
+      password: "password123",
+    });
+    userToken = userLogin.body.token;
+
+    //Login as admin
+    const adminLogin = await request(app).post("/auth/login").send({
+      email: "admin@test.com",
+      password: "adminpass123",
+    });
+    adminToken = adminLogin.body.token;
+
+    //Create an experience using the admin to block
+    const hostLogin = await request(app).post("/auth/login").send({
+      email: "host@example.com",
+      password: "hostpass123",
+    });
+
+    const expRes = await request(app)
+      .post("/experiences")
+      .set("Authorization", `Bearer ${hostLogin.body.token}`)
+      .send({
+        title: "Experience to Block",
+        description: "This will be blocked by admin",
+        location: "Mumbai",
+        price: 1000,
+        start_time: new Date(Date.now() + 86400000).toISOString(),
+      });
+
+    expId = expRes.body.experience.id;
+  });
+
+  it("should return 403 when a user tries to block an experience", async () => {
+    const res = await request(app)
+      .patch(`/experiences/${expId}/block`)
+      .set("Authorization", `Bearer ${userToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("FORBIDDEN");
+  });
+
+  it("should allow admin to block an experience (200)", async () => {
+    const res = await request(app)
+      .patch(`/experiences/${expId}/block`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.experience.status).toBe("blocked");
+  });
+
+  it("should return 401 when no auth token is provided", async () => {
+    const res = await request(app).patch(`/experiences/${expId}/block`);
+    expect(res.status).toBe(401);
+  });
+});
