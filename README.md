@@ -394,3 +394,6 @@ All errors across the API follow this format:
 - Booking is only allowed on `published` experiences. Attempting to book a `draft` or `blocked` experience returns 400.
 - A user cannot make a second `confirmed` booking for the same experience. Duplicate attempts return 400.
 - All protected routes require `Authorization: Bearer <token>`. Missing or invalid tokens return 401.
+
+## AI Usage
+Claude was used to speed up boilerplate - folder structure, Docker setup, validators, and seed data. The core logic (RBAC rules, ownership checks, middleware design, error handling) was written and reasoned through manually. All generated code was read and adjusted, not blindly accepted.
