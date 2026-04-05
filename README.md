@@ -6,6 +6,34 @@ Stack: Node.js + Express + TypeScript + Prisma + PostgreSQL + Docker
 
 ---
 
+## Live Deployment
+
+|                  | URL                                      |
+| ---------------- | ---------------------------------------- |
+| **API (Render)** | https://experiences-backend.onrender.com |
+| **Database**     | PostgreSQL hosted on Neon                |
+
+Health check:
+
+```bash
+curl -s https://experiences-backend.onrender.com/health | jq
+```
+
+> Render free tier spins down after inactivity. The first request may take 30-60 seconds to respond. Subsequent requests are fast.
+
+---
+
+## Table of Contents
+
+1. [Setup Instructions](#setup-instructions)
+2. [Running Locally (dev mode)](#running-locally-dev-mode-with-hot-reload)
+3. [DB Setup — Schema and Migrations](#db-setup--schema-and-migrations)
+4. [How to Run](#how-to-run)
+5. [curl Examples](#curl-examples)
+6. [RBAC Rules Implemented](#rbac-rules-implemented)
+
+---
+
 ## Setup Instructions
 
 ### 1. Clone or extract the project
@@ -32,7 +60,7 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_DB=experiences_db
 ```
 
-> If you are running the Node server locally (not via Docker), change the host in `DATABASE_URL` from `postgres` to `localhost`.
+> If running the Node server locally (not via Docker), change the host in `DATABASE_URL` from `postgres` to `localhost`.
 
 ### 3. Start the application
 
@@ -149,6 +177,11 @@ npm run seed
 
 ## curl Examples
 
+Two base URLs are shown throughout:
+
+- **Local**: `http://localhost:3000`
+- **Hosted**: `https://experiences-backend.onrender.com`
+
 Replace `TOKEN` with the JWT from the login response.
 Replace `EXPERIENCE_ID` with an ID from the seed output or a create response.
 
@@ -157,34 +190,51 @@ Replace `EXPERIENCE_ID` with an ID from the seed output or a create response.
 ### Signup
 
 ```bash
-# Sign up as a user
+# Local
 curl -s -X POST http://localhost:3000/auth/signup \
   -H "Content-Type: application/json" \
   -d '{"email":"alice@example.com","password":"password123","role":"user"}' | jq
 
-# Sign up as a host
-curl -s -X POST http://localhost:3000/auth/signup \
+# Hosted
+curl -s -X POST https://experiences-backend.onrender.com/auth/signup \
   -H "Content-Type: application/json" \
-  -d '{"email":"bob@example.com","password":"password123","role":"host"}' | jq
+  -d '{"email":"alice@example.com","password":"password123","role":"user"}' | jq
 ```
+
+To sign up as a host, change `"role":"user"` to `"role":"host"`. Admin role is not accepted at signup.
 
 ---
 
 ### Login
 
 ```bash
-# Login as admin (from seed)
+# Local — login as admin
 curl -s -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@yoliday.com","password":"Admin@1234"}' | jq
 
-# Login as host (from seed)
+# Hosted — login as admin
+curl -s -X POST https://experiences-backend.onrender.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@yoliday.com","password":"Admin@1234"}' | jq
+
+# Local — login as host
 curl -s -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"priya.sharma@host.com","password":"Host@1234"}' | jq
 
-# Login as user (from seed)
+# Hosted — login as host
+curl -s -X POST https://experiences-backend.onrender.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"priya.sharma@host.com","password":"Host@1234"}' | jq
+
+# Local — login as user
 curl -s -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"rahul.nair@user.com","password":"User@1234"}' | jq
+
+# Hosted — login as user
+curl -s -X POST https://experiences-backend.onrender.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"rahul.nair@user.com","password":"User@1234"}' | jq
 ```
@@ -203,7 +253,20 @@ Response:
 ### Create Experience (host or admin only)
 
 ```bash
+# Local
 curl -s -X POST http://localhost:3000/experiences \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Sunrise Kayaking in Alleppey",
+    "description": "A 3-hour guided kayak through the backwaters at sunrise.",
+    "location": "Alleppey, Kerala",
+    "price": 2200,
+    "start_time": "2025-10-01T04:30:00.000Z"
+  }' | jq
+
+# Hosted
+curl -s -X POST https://experiences-backend.onrender.com/experiences \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -222,7 +285,12 @@ New experiences always start as `draft`.
 ### Publish Experience (owner host or admin)
 
 ```bash
+# Local
 curl -s -X PATCH http://localhost:3000/experiences/EXPERIENCE_ID/publish \
+  -H "Authorization: Bearer TOKEN" | jq
+
+# Hosted
+curl -s -X PATCH https://experiences-backend.onrender.com/experiences/EXPERIENCE_ID/publish \
   -H "Authorization: Bearer TOKEN" | jq
 ```
 
@@ -231,7 +299,12 @@ curl -s -X PATCH http://localhost:3000/experiences/EXPERIENCE_ID/publish \
 ### Block Experience (admin only)
 
 ```bash
+# Local
 curl -s -X PATCH http://localhost:3000/experiences/EXPERIENCE_ID/block \
+  -H "Authorization: Bearer ADMIN_TOKEN" | jq
+
+# Hosted
+curl -s -X PATCH https://experiences-backend.onrender.com/experiences/EXPERIENCE_ID/block \
   -H "Authorization: Bearer ADMIN_TOKEN" | jq
 ```
 
@@ -240,17 +313,23 @@ curl -s -X PATCH http://localhost:3000/experiences/EXPERIENCE_ID/block \
 ### List Published Experiences (public, no auth needed)
 
 ```bash
-# All published experiences
+# Local — all published
 curl -s "http://localhost:3000/experiences" | jq
 
-# Filter by location
+# Hosted — all published
+curl -s "https://experiences-backend.onrender.com/experiences" | jq
+
+# Local — filter by location
 curl -s "http://localhost:3000/experiences?location=Goa" | jq
 
-# Filter by date range
-curl -s "http://localhost:3000/experiences?from=2025-09-01T00:00:00.000Z&to=2025-12-31T00:00:00.000Z" | jq
+# Hosted — filter by location
+curl -s "https://experiences-backend.onrender.com/experiences?location=Goa" | jq
 
-# Pagination and sort
-curl -s "http://localhost:3000/experiences?page=1&limit=5&sort=desc" | jq
+# Local — date range + pagination + sort
+curl -s "http://localhost:3000/experiences?from=2025-09-01T00:00:00.000Z&to=2025-12-31T00:00:00.000Z&page=1&limit=5&sort=desc" | jq
+
+# Hosted — date range + pagination + sort
+curl -s "https://experiences-backend.onrender.com/experiences?from=2025-09-01T00:00:00.000Z&to=2025-12-31T00:00:00.000Z&page=1&limit=5&sort=desc" | jq
 ```
 
 Supported query parameters: `location`, `from`, `to`, `page`, `limit`, `sort` (asc | desc).
@@ -260,7 +339,14 @@ Supported query parameters: `location`, `from`, `to`, `page`, `limit`, `sort` (a
 ### Book an Experience (user or admin only)
 
 ```bash
+# Local
 curl -s -X POST http://localhost:3000/experiences/EXPERIENCE_ID/book \
+  -H "Authorization: Bearer USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"seats": 2}' | jq
+
+# Hosted
+curl -s -X POST https://experiences-backend.onrender.com/experiences/EXPERIENCE_ID/book \
   -H "Authorization: Bearer USER_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"seats": 2}' | jq
@@ -271,7 +357,11 @@ curl -s -X POST http://localhost:3000/experiences/EXPERIENCE_ID/book \
 ### Health Check
 
 ```bash
+# Local
 curl -s http://localhost:3000/health | jq
+
+# Hosted
+curl -s https://experiences-backend.onrender.com/health | jq
 ```
 
 ---
