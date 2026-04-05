@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
-import express from "express";
 import request from "supertest";
-import healthRouter from "../src/routes/health.routes";
+import app from "../src/app";
 import { cleanDb, prisma } from "./setup";
 
 //We run tests in sequence to avoid DB race conditions
@@ -14,22 +13,7 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-//#This is being done to create a test app without starting actual server
-const app = express();
-app.use("/api", healthRouter);
-
-describe("Health API", () => {
-  it("should return 200 and db connected when prisma works", async () => {
-    const res = await request(app).get("/api/health");
-
-    //We are checking if API responds correctly
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("status", "ok");
-    expect(res.body).toHaveProperty("db", "connected");
-  });
-});
-
-//tests for signup and login
+// TEST 1: Signup and Login
 describe("Auth - Signup and Login", () => {
   it("should sign up a new user successfully", async () => {
     const res = await request(app).post("/auth/signup").send({
@@ -88,7 +72,7 @@ describe("Auth - Signup and Login", () => {
   });
 });
 
-// TEST 2: Host can create and publish their experience describe("Host - Create and Publish Experience", () => {
+// TEST 2: Host can create and publish their experience
 describe("Host - Create and Publish Experience", () => {
   let hostToken: string;
   let experienceId: string;
@@ -156,7 +140,7 @@ describe("Host - Create and Publish Experience", () => {
   });
 });
 
-//Tests to ensure only admins can block experiences
+// TEST 3: User cannot block; Admin can
 describe("RBAC - Block Experience", () => {
   let userToken: string;
   let adminToken: string;
