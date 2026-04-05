@@ -1,4 +1,4 @@
-# Experiences Marketplace — Backend API
+# Experiences Marketplace - Backend API
 
 REST API for an "Experiences" marketplace with authentication and role-based access control.
 
